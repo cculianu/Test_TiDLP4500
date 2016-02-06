@@ -40,3 +40,8 @@ void Dialog::updateRenderTimeLabel(int time_us)
 {
     ui->renderTimeLbl->setText(QString::number(double(time_us/1000.0)));
 }
+
+void Dialog::on_timeSlider_valueChanged(int value)
+{
+    ui->timeScaleLbl->setText(QString::number(value));
+}

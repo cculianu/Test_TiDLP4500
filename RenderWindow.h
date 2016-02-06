@@ -22,6 +22,8 @@ public:
 
     bool isReverseRGB() const { return is_reverse; }
 
+    float timeScale() const { return time_scale; }
+
 signals:
     void computedFPS(int fps);
     void computedRenderTime(int time_us);
@@ -35,6 +37,8 @@ public slots:
     void setRenderMode8x() { render_mode = Mode8x; }
     void setRenderMode24x() { render_mode = Mode24x; }
     void setReverseRGB(bool b) { is_reverse = b; }
+    void setTimeScale(int ts) { time_scale = ts; }
+    void setTimeScale(float ts) { time_scale = ts; }
 
 protected:
     void initializeGL();
@@ -62,6 +66,7 @@ private:
     bool paused;
     RenderModes render_mode;
     bool is_reverse;
+    float time_scale;
 
     void setColorMask(int subframe_num);
     void unsetColorMask();

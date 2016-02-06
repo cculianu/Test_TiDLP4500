@@ -25,6 +25,8 @@ public slots:
 protected:
     void closeEvent(QCloseEvent *);
     void hideEvent(QHideEvent *);
+private slots:
+    void on_timeSlider_valueChanged(int value);
 };
 
 #endif // DIALOG_H

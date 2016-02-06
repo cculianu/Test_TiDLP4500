@@ -15,6 +15,7 @@ RenderWindow::RenderWindow(QWindow *parent)
     fbo = 0;
     render_mode = Normal;
     is_reverse = false;
+    time_scale = 1.0f;
 
     setSurfaceType(OpenGLSurface);
     QSurfaceFormat  format;
@@ -131,11 +132,13 @@ void RenderWindow::paintGL()
                 g->glVertexPointer(2, GL_FLOAT, 0, v);
                 g->glDrawArrays(GL_QUADS, 0, 4);
 
+                float timeScale = (1.0/float(nSubframes)) * time_scale;
+
                 // animate
-                s.x += s.vx;
-                s.y += s.vy;
-                s.angle += s.spin;
-                s.intensity += s.intensity_delta;
+                s.x += s.vx * timeScale;
+                s.y += s.vy * timeScale;
+                s.angle += s.spin * timeScale;
+                s.intensity += s.intensity_delta * timeScale;
 
                 if (s.angle > 360.f) s.angle -= 360.f;
                 if (s.angle < -360.f) s.angle += 360.f;
@@ -191,11 +194,16 @@ void RenderWindow::setColorMask(int k)
     if (render_mode != Normal && is_reverse)  k = (int(render_mode)-1)-k;
 
     if (render_mode == Mode3x) g->glColorMask(k==0,k==1,k==2,GL_TRUE);
-    else g->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    else {
+        g->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        g->glEnable(GL_COLOR_LOGIC_OP);
+        g->glLogicOp(GL_OR);
+    }
 }
 
 void RenderWindow::unsetColorMask()
 {
+    g->glDisable(GL_COLOR_LOGIC_OP);
     g->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
 
@@ -205,10 +213,30 @@ void RenderWindow::getColor(int k, GLfloat intensity, GLubyte c[3])
     if (intensity > 1.f) intensity = 1.f;
     if (render_mode != Normal && is_reverse)  k = (int(render_mode)-1)-k;
 
+    GLubyte tmp = 0, shift = 0;
+
     switch(render_mode) {
     case Mode3x:
         c[0] = c[1] = c[2] = 0;
-        c[k] = intensity*255.f;
+        c[k] = intensity*255.f; // scale to 8-bit
+        break;
+    case Mode8x:
+        c[0] = c[1] = c[2] = 0;
+        tmp = intensity*8.f; // scale to 3-bit
+        tmp = tmp & 0x7; // make sure it's only bottom-three bits
+        shift = (7-k);
+        c[0] = (tmp>>2&0x1) << shift;
+        c[1] = (tmp>>1&0x1) << shift;
+        c[2] = (tmp>>0&0x1) << shift;
+        break;
+    case Mode24x:
+        c[0] = c[1] = c[2] = 0;
+        tmp = intensity > 1.f/255.f ? 0x1 : 0x0;
+        tmp = tmp&0x1; // ensure just bottom 1 bit is set
+        shift = (7-(k%8));
+        if (k < 8) c[0] = tmp<<shift;
+        else if (k < 16) c[1] = tmp<<shift;
+        else if (k < 24) c[2] = tmp<<shift;
         break;
     default: c[0] = c[1] = c[2] = intensity*255.f; break;
     }

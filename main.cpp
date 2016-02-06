@@ -21,6 +21,9 @@ int main(int argc, char *argv[])
     QObject::connect(w.ui->octupleRadio, SIGNAL(clicked()), &r, SLOT(setRenderMode8x()));
     QObject::connect(w.ui->dodekaQuadrupleRadio, SIGNAL(clicked()), &r, SLOT(setRenderMode24x()));
     QObject::connect(w.ui->reverseChk, SIGNAL(clicked(bool)), &r, SLOT(setReverseRGB(bool)));
+    QObject::connect(w.ui->timeSlider, SIGNAL(valueChanged(int)), &w, SLOT(on_timeSlider_valueChanged(int)));
+    QObject::connect(w.ui->timeSlider, SIGNAL(valueChanged(int)), &r, SLOT(setTimeScale(int)));
+
     r.show();
     w.show();
     w.focusWidget();
