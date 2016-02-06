@@ -5,6 +5,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QWidget>
 #include <QApplication>
+#include <math.h>
 
 RenderWindow::RenderWindow(QWindow *parent)
     : QOpenGLWindow(NoPartialUpdate, parent), g(0)
@@ -14,8 +15,11 @@ RenderWindow::RenderWindow(QWindow *parent)
     paused = false;
     fbo = 0;
     render_mode = Normal;
+    mode = MovingObjects;
     is_reverse = false;
     time_scale = 1.0f;
+    memset(mgtexs, 0, sizeof mgtexs);
+    phase = 0.f; spatial_freq = 5.f; temp_freq = 1.f, angle = 0.f;
 
     setSurfaceType(OpenGLSurface);
     QSurfaceFormat  format;
@@ -31,7 +35,10 @@ RenderWindow::RenderWindow(QWindow *parent)
 
 RenderWindow::~RenderWindow()
 {
-    delete g; g = 0;
+    makeCurrent();
+    if (*mgtexs) g->glDeleteTextures(24, mgtexs), memset(mgtexs,0,sizeof mgtexs);
+    if (fbo) delete fbo, fbo = 0;
+    if (g) delete g, g = 0;
 }
 
 void RenderWindow::initializeGL()
@@ -41,6 +48,7 @@ void RenderWindow::initializeGL()
         g->initializeOpenGLFunctions();
     }
     initSquares();
+    initMGTex();
 
     qDebug("OpenGL: %d.%d", context()->format().majorVersion(), context()->format().minorVersion());
 }
@@ -77,6 +85,28 @@ void RenderWindow::initSquares()
         s.intensity_delta = getRand(-0.01,0.01);
     }
 }
+void RenderWindow::initMGTex()
+{
+    if (*mgtexs) g->glDeleteTextures(24, mgtexs), memset(mgtexs,0,sizeof mgtexs);
+    g->glGenTextures(24, mgtexs);
+    int ntexs = int(render_mode);
+    for (int tex = 0; tex < ntexs; ++tex) {
+        int NCOLORS = 256;
+        int shift = 0; // testing
+        if (render_mode == Mode8x) NCOLORS = 8, shift = 5;
+        if (render_mode == Mode24x) NCOLORS = 2, shift = 7;
+        GLubyte pix[256];
+        for (int i = 0; i < NCOLORS; ++i) {
+            GLubyte c;
+            if (render_mode == Mode24x) c = i ? 0 : 1;
+            else c = qRound(((::cosf(GLfloat(i)/GLfloat(NCOLORS-1)*2.0f*M_PI)+1.0f)/2.0f) * (NCOLORS-1));
+            pix[i] = (c&(NCOLORS-1)) << shift;
+        }
+        g->glBindTexture(GL_TEXTURE_1D, mgtexs[tex]);
+        g->glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, NCOLORS, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pix);
+        g->glBindTexture(GL_TEXTURE_1D, 0);
+    }
+}
 
 void RenderWindow::togglePause() { paused = !paused; }
 
@@ -107,53 +137,91 @@ void RenderWindow::paintGL()
         g->glClearColor(0.f,0.f,0.f,1.f);
         g->glClear(GL_COLOR_BUFFER_BIT);
 
-        int nSubframes = (int)render_mode;
-        for (int k = 0; k < nSubframes; ++k) {
+        if (mode == MovingObjects) {
+            int nSubframes = (int)render_mode;
+            for (int k = 0; k < nSubframes; ++k) {
 
-            setColorMask(k);
+                setColorMask(k);
+
+                g->glEnableClientState(GL_VERTEX_ARRAY);
+
+                for (int i = 0; i < squares.size(); ++i) {
+                    Square & s = squares[i];
+                    g->glPushMatrix();
+
+                    GLubyte c[3];
+                    getColor(k,s.intensity, c);
+
+                    g->glColor3ub(c[0],c[1],c[2]);
+                    g->glTranslatef(s.x,s.y,0.f);
+                    g->glRotatef(s.angle, 0.f,0.f,1.f);
+
+                    GLfloat hw = s.w/2.f, hh = s.h/2.f;
+
+                    GLfloat v[] = { -hw, -hh, hw, -hh, hw, hh, -hw, hh };
+
+                    g->glVertexPointer(2, GL_FLOAT, 0, v);
+                    g->glDrawArrays(GL_QUADS, 0, 4);
+
+                    float timeScale = (1.0/float(nSubframes)) * time_scale;
+
+                    // animate
+                    s.x += s.vx * timeScale;
+                    s.y += s.vy * timeScale;
+                    s.angle += s.spin * timeScale;
+                    s.intensity += s.intensity_delta * timeScale;
+
+                    if (s.angle > 360.f) s.angle -= 360.f;
+                    if (s.angle < -360.f) s.angle += 360.f;
+                    // normalize & bounce
+                    if (s.vx > 0.f && s.x > 1.0f) s.vx = -s.vx;
+                    if (s.vy > 0.f && s.y > 1.0f) s.vy = -s.vy;
+                    if (s.vx < 0.f && s.x < 0.f) s.vx = -s.vx;
+                    if (s.vy < 0.f && s.y < 0.f) s.vy = -s.vy;
+                    if (s.intensity < 0.f && s.intensity_delta < 0.f) s.intensity_delta = -s.intensity_delta, s.intensity = 0.f;
+                    if (s.intensity > 1.f && s.intensity_delta > 0.f) s.intensity_delta = -s.intensity_delta, s.intensity = 1.f;
+
+                    g->glPopMatrix();
+                }
+                g->glDisableClientState(GL_VERTEX_ARRAY);
+                unsetColorMask();
+            }
+        } else if (mode == MovingGrating) {
+            float dT = 1.f/60.f * time_scale;
+            phase += dT * temp_freq;
+            phase = fmod(phase, 1.0);
+
+            g->glPushMatrix();
+
+            g->glTranslatef( 0.5f, 0.5f, 0);
+            g->glRotatef( angle, 0.0, 0.0, 1.0 );
+
+
+            g->glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+            g->glEnable(GL_TEXTURE_1D);
+            g->glBindTexture(GL_TEXTURE_1D, mgtexs[0]);
+            g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
             g->glEnableClientState(GL_VERTEX_ARRAY);
+            g->glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-            for (int i = 0; i < squares.size(); ++i) {
-                Square & s = squares[i];
-                g->glPushMatrix();
+            GLfloat v[] = { -.5f,-.5f, .5f,-.5f, .5f,.5f, -.5f,.5f };
+            const float bw = (spatial_freq <= 0. ? 1.0 : 1.0/spatial_freq);
+            GLfloat t[] = { 0.f+phase, 1.f/bw+phase, 1.f/bw+phase, 0.f+phase };
 
-                GLubyte c[3];
-                getColor(k,s.intensity, c);
+            g->glVertexPointer(2, GL_FLOAT, 0, v);
+            g->glTexCoordPointer(1, GL_FLOAT, 0, t);
 
-                g->glColor3ub(c[0],c[1],c[2]);
-                g->glTranslatef(s.x,s.y,0.f);
-                g->glRotatef(s.angle, 0.f,0.f,1.f);
+            g->glDrawArrays(GL_QUADS, 0, 4);
 
-                GLfloat hw = s.w/2.f, hh = s.h/2.f;
-
-                GLfloat v[] = { -hw, -hh, hw, -hh, hw, hh, -hw, hh };
-
-                g->glVertexPointer(2, GL_FLOAT, 0, v);
-                g->glDrawArrays(GL_QUADS, 0, 4);
-
-                float timeScale = (1.0/float(nSubframes)) * time_scale;
-
-                // animate
-                s.x += s.vx * timeScale;
-                s.y += s.vy * timeScale;
-                s.angle += s.spin * timeScale;
-                s.intensity += s.intensity_delta * timeScale;
-
-                if (s.angle > 360.f) s.angle -= 360.f;
-                if (s.angle < -360.f) s.angle += 360.f;
-                // normalize & bounce
-                if (s.vx > 0.f && s.x > 1.0f) s.vx = -s.vx;
-                if (s.vy > 0.f && s.y > 1.0f) s.vy = -s.vy;
-                if (s.vx < 0.f && s.x < 0.f) s.vx = -s.vx;
-                if (s.vy < 0.f && s.y < 0.f) s.vy = -s.vy;
-                if (s.intensity < 0.f && s.intensity_delta < 0.f) s.intensity_delta = -s.intensity_delta, s.intensity = 0.f;
-                if (s.intensity > 1.f && s.intensity_delta > 0.f) s.intensity_delta = -s.intensity_delta, s.intensity = 1.f;
-
-                g->glPopMatrix();
-            }
             g->glDisableClientState(GL_VERTEX_ARRAY);
-            unsetColorMask();
+            g->glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+            g->glDisable(GL_TEXTURE_1D);
+
+            g->glPopMatrix();
         }
 
         if (!fbo->release())

@@ -17,6 +17,7 @@ public:
     ~RenderWindow();
 
     enum RenderModes { Normal=1, Mode3x=3, Mode8x=8, Mode24x=24 };
+    enum PluginModes { MovingObjects, MovingGrating };
 
     RenderModes renderMode() const { return render_mode; }
 
@@ -31,14 +32,17 @@ signals:
 public slots:
     void toggleFullScreen();
     void togglePause();
-    void setRenderMode(RenderModes m) { render_mode = m; }
-    void setRenderNormal() { render_mode = Normal; }
-    void setRenderMode3x() { render_mode = Mode3x; }
-    void setRenderMode8x() { render_mode = Mode8x; }
-    void setRenderMode24x() { render_mode = Mode24x; }
+    void setRenderMode(RenderModes m) { render_mode = m; initMGTex(); }
+    void setRenderNormal() { render_mode = Normal; initMGTex(); }
+    void setRenderMode3x() { render_mode = Mode3x; initMGTex(); }
+    void setRenderMode8x() { render_mode = Mode8x; initMGTex(); }
+    void setRenderMode24x() { render_mode = Mode24x; initMGTex(); }
     void setReverseRGB(bool b) { is_reverse = b; }
     void setTimeScale(int ts) { time_scale = ts; }
     void setTimeScale(float ts) { time_scale = ts; }
+
+    void setMovingObjectsMode() { mode = MovingObjects; }
+    void setMovingGratingMode() { mode = MovingGrating; }
 
 protected:
     void initializeGL();
@@ -60,13 +64,18 @@ private:
     QVector<Square> squares;
 
     void initSquares();
+    void initMGTex();
 
     double tLastFPS, renderTimeAccum;
     long frameCount, lastFPSFC;
     bool paused;
     RenderModes render_mode;
+    PluginModes mode;
     bool is_reverse;
     float time_scale;
+    GLuint mgtexs[24]; // moving grating texture. 1d texture of 256 shades of gray
+    // grating stuff
+    float phase, spatial_freq, temp_freq, angle;
 
     void setColorMask(int subframe_num);
     void unsetColorMask();

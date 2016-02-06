@@ -23,6 +23,8 @@ int main(int argc, char *argv[])
     QObject::connect(w.ui->reverseChk, SIGNAL(clicked(bool)), &r, SLOT(setReverseRGB(bool)));
     QObject::connect(w.ui->timeSlider, SIGNAL(valueChanged(int)), &w, SLOT(on_timeSlider_valueChanged(int)));
     QObject::connect(w.ui->timeSlider, SIGNAL(valueChanged(int)), &r, SLOT(setTimeScale(int)));
+    QObject::connect(w.ui->movingObjectsRadio, SIGNAL(clicked()), &r, SLOT(setMovingObjectsMode()));
+    QObject::connect(w.ui->movingGratingRadio, SIGNAL(clicked()), &r, SLOT(setMovingGratingMode()));
 
     r.show();
     w.show();
