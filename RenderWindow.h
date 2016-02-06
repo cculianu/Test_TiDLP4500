@@ -20,6 +20,8 @@ public:
 
     RenderModes renderMode() const { return render_mode; }
 
+    bool isReverseRGB() const { return is_reverse; }
+
 signals:
     void computedFPS(int fps);
     void computedRenderTime(int time_us);
@@ -32,6 +34,7 @@ public slots:
     void setRenderMode3x() { render_mode = Mode3x; }
     void setRenderMode8x() { render_mode = Mode8x; }
     void setRenderMode24x() { render_mode = Mode24x; }
+    void setReverseRGB(bool b) { is_reverse = b; }
 
 protected:
     void initializeGL();
@@ -58,6 +61,7 @@ private:
     long frameCount, lastFPSFC;
     bool paused;
     RenderModes render_mode;
+    bool is_reverse;
 
     void setColorMask(int subframe_num);
     void unsetColorMask();

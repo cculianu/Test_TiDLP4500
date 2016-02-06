@@ -8,6 +8,10 @@ Dialog::Dialog(QWidget *parent) :
     ui(new Ui::Dialog)
 {
     ui->setupUi(this);
+    connect(ui->noneRadio, SIGNAL(clicked(bool)), ui->reverseChk, SLOT(setDisabled(bool)));
+    connect(ui->tripleRadio, SIGNAL(clicked(bool)), ui->reverseChk, SLOT(setEnabled(bool)));
+    connect(ui->octupleRadio, SIGNAL(clicked(bool)), ui->reverseChk, SLOT(setEnabled(bool)));
+    connect(ui->dodekaQuadrupleRadio, SIGNAL(clicked(bool)), ui->reverseChk, SLOT(setEnabled(bool)));
 }
 
 Dialog::~Dialog()

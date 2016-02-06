@@ -14,6 +14,7 @@ RenderWindow::RenderWindow(QWindow *parent)
     paused = false;
     fbo = 0;
     render_mode = Normal;
+    is_reverse = false;
 
     setSurfaceType(OpenGLSurface);
     QSurfaceFormat  format;
@@ -187,6 +188,8 @@ void RenderWindow::paintGL()
 
 void RenderWindow::setColorMask(int k)
 {
+    if (render_mode != Normal && is_reverse)  k = int(render_mode-1)-k;
+
     if (render_mode == Mode3x) g->glColorMask(k==0,k==1,k==2,GL_TRUE);
     else g->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
@@ -200,6 +203,7 @@ void RenderWindow::getColor(int k, GLfloat intensity, GLubyte c[3])
 {
     if (intensity < 0.f) intensity = 0.f;
     if (intensity > 1.f) intensity = 1.f;
+    if (render_mode != Normal && is_reverse)  k = int(render_mode-1)-k;
 
     switch(render_mode) {
     case Mode3x:
