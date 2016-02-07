@@ -15,7 +15,7 @@ void main() {
   if (renderMode == 24) {
         highp float intensity = (mycolor.r+mycolor.g+mycolor.b)/3.0;
         int bit = 0x1;
-        if (intensity < 1.0/255.0) bit = 0x0;
+        if (intensity < 0.5) bit = 0x0;
         int word = bit << (23-subFrame);
         int r = (word>>16)&0xff;
         int g = (word>>8)&0xff;

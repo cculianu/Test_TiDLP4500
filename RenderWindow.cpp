@@ -137,6 +137,9 @@ void RenderWindow::paintGL()
 
         int nSubframes = (int)render_mode;
 
+        if (!fragShader->bind()) qWarning("Error binding frag shader");
+        fragShader->setUniformValue("renderMode", int(render_mode));
+
         for (int k = 0; k < nSubframes; ++k) {
 
             setColorMask(k);
@@ -227,6 +230,8 @@ void RenderWindow::paintGL()
             unsetColorMask();
         }
 
+        fragShader->release();
+
         if (!fbo->release())
             qWarning("QOpenGLFramebufferObject::release() returned false!");
     } // end if !paused
@@ -264,9 +269,7 @@ void RenderWindow::setColorMask(int k)
 {
     if (render_mode != Normal && is_reverse)  k = (int(render_mode)-1)-k;
 
-    if (!fragShader->bind()) qWarning("Error binding frag shader");
     fragShader->setUniformValue("subFrame", k);
-    fragShader->setUniformValue("renderMode", int(render_mode));
 
     if (render_mode == Mode3x) {
         g->glColorMask(k==0,k==1,k==2,GL_TRUE);
@@ -279,7 +282,6 @@ void RenderWindow::setColorMask(int k)
 
 void RenderWindow::unsetColorMask()
 {
-    fragShader->release();
     g->glDisable(GL_COLOR_LOGIC_OP);
     g->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
