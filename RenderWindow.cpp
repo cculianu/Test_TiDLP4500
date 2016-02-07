@@ -7,6 +7,7 @@
 #include <QWidget>
 #include <QApplication>
 #include <math.h>
+#include <QIcon>
 
 RenderWindow::RenderWindow(QWindow *parent)
     : QOpenGLWindow(NoPartialUpdate, parent), g(0)
@@ -34,6 +35,8 @@ RenderWindow::RenderWindow(QWindow *parent)
     setFormat(format);
 
     setTitle("Test Ti 4500 DLP Render Window");
+    setIcon(QIcon(":/icons/icon.png"));
+
 }
 
 RenderWindow::~RenderWindow()

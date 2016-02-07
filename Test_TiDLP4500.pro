@@ -27,4 +27,13 @@ DISTFILES += \
     subframeshader.fsh
 
 RESOURCES += \
-    shaders.qrc
+    shaders.qrc \
+    misc.qrc
+
+win32 {
+    RC_FILE += WinResources.rc
+    QMAKE_CFLAGS_RELEASE -= /O2 /O1 -O1 -O2
+    QMAKE_CXXFLAGS_RELEASE -= /O2 /O1 -O1 -O2
+    QMAKE_CFLAGS_RELEASE += -Ox
+    QMAKE_CXXFLAGS_RELEASE += -Ox
+}

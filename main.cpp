@@ -10,6 +10,7 @@ int main(int argc, char *argv[])
 
     RenderWindow r;
     r.setBaseSize(QSize(640,480));
+    r.resize(640,480);
 
     QObject::connect(w.ui->fullScreenBut, SIGNAL(clicked()), &r, SLOT(toggleFullScreen()));
     QObject::connect(w.ui->quitBut, SIGNAL(clicked()), &a, SLOT(quit()));
