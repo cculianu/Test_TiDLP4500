@@ -7,6 +7,7 @@
 #define RENDERWINDOW_H
 
 class QOpenGLFramebufferObject;
+class QOpenGLShaderProgram;
 
 class RenderWindow : public QOpenGLWindow
 {
@@ -32,11 +33,11 @@ signals:
 public slots:
     void toggleFullScreen();
     void togglePause();
-    void setRenderMode(RenderModes m) { render_mode = m; initMGTex(); }
-    void setRenderNormal() { render_mode = Normal; initMGTex(); }
-    void setRenderMode3x() { render_mode = Mode3x; initMGTex(); }
-    void setRenderMode8x() { render_mode = Mode8x; initMGTex(); }
-    void setRenderMode24x() { render_mode = Mode24x; initMGTex(); }
+    void setRenderMode(RenderModes m) { render_mode = m;  }
+    void setRenderNormal() { render_mode = Normal;  }
+    void setRenderMode3x() { render_mode = Mode3x;  }
+    void setRenderMode8x() { render_mode = Mode8x;  }
+    void setRenderMode24x() { render_mode = Mode24x;  }
     void setReverseRGB(bool b) { is_reverse = b; }
     void setTimeScale(int ts) { time_scale = ts; }
     void setTimeScale(float ts) { time_scale = ts; }
@@ -54,6 +55,7 @@ protected:
 private:
     QOpenGLFunctions_1_5 *g;
     QOpenGLFramebufferObject *fbo;
+    QOpenGLShaderProgram *fragShader;
 
     struct Square {
         float x,y,w,h,intensity,angle,vx,vy,intensity_delta,spin;
@@ -65,6 +67,7 @@ private:
 
     void initSquares();
     void initMGTex();
+    void initFragShader();
 
     double tLastFPS, renderTimeAccum;
     long frameCount, lastFPSFC;
@@ -73,13 +76,12 @@ private:
     PluginModes mode;
     bool is_reverse;
     float time_scale;
-    GLuint mgtexs[24]; // moving grating texture. 1d texture of 256 shades of gray
+    GLuint mgtex; // moving grating texture. 1d texture of 256 shades of gray
     // grating stuff
     float phase, spatial_freq, temp_freq, angle;
 
     void setColorMask(int subframe_num);
     void unsetColorMask();
-    void getColor(int subframe_num, GLfloat intensity, GLubyte c[3]);
 };
 
 #endif // RENDERWINDOW_H

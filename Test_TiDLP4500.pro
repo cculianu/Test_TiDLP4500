@@ -22,3 +22,9 @@ HEADERS  += dialog.h \
     Util.h
 
 FORMS    += dialog.ui
+
+DISTFILES += \
+    subframeshader.fsh
+
+RESOURCES += \
+    shaders.qrc

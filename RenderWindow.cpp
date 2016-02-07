@@ -3,6 +3,7 @@
 #include <QKeyEvent>
 #include <QCloseEvent>
 #include <QOpenGLFramebufferObject>
+#include <QOpenGLShaderProgram>
 #include <QWidget>
 #include <QApplication>
 #include <math.h>
@@ -14,11 +15,12 @@ RenderWindow::RenderWindow(QWindow *parent)
     tLastFPS = 0.; renderTimeAccum = 0.;
     paused = false;
     fbo = 0;
+    fragShader = 0;
     render_mode = Normal;
     mode = MovingObjects;
     is_reverse = false;
     time_scale = 1.0f;
-    memset(mgtexs, 0, sizeof mgtexs);
+    mgtex = 0;
     phase = 0.f; spatial_freq = 5.f; temp_freq = 1.f, angle = 0.f;
 
     setSurfaceType(OpenGLSurface);
@@ -30,27 +32,32 @@ RenderWindow::RenderWindow(QWindow *parent)
     format.setSwapInterval(1);
     QSurfaceFormat::setDefaultFormat(format);
     setFormat(format);
+
     setTitle("Test Ti 4500 DLP Render Window");
 }
 
 RenderWindow::~RenderWindow()
 {
     makeCurrent();
-    if (*mgtexs) g->glDeleteTextures(24, mgtexs), memset(mgtexs,0,sizeof mgtexs);
+    if (mgtex) g->glDeleteTextures(1, &mgtex), mgtex = 0;
     if (fbo) delete fbo, fbo = 0;
+    if (fragShader) delete fragShader, fragShader = 0;
     if (g) delete g, g = 0;
 }
 
 void RenderWindow::initializeGL()
 {
+    qDebug("OpenGL: %d.%d", context()->format().majorVersion(), context()->format().minorVersion());
+
     if (!g) {
         g = new QOpenGLFunctions_1_5;
         g->initializeOpenGLFunctions();
     }
+    if (!fragShader) fragShader = new QOpenGLShaderProgram(this);
+    initFragShader();
     initSquares();
     initMGTex();
 
-    qDebug("OpenGL: %d.%d", context()->format().majorVersion(), context()->format().minorVersion());
 }
 
 void RenderWindow::resizeGL(int w, int h)
@@ -87,25 +94,16 @@ void RenderWindow::initSquares()
 }
 void RenderWindow::initMGTex()
 {
-    if (*mgtexs) g->glDeleteTextures(24, mgtexs), memset(mgtexs,0,sizeof mgtexs);
-    g->glGenTextures(24, mgtexs);
-    int ntexs = int(render_mode);
-    for (int tex = 0; tex < ntexs; ++tex) {
-        int NCOLORS = 256;
-        int shift = 0; // testing
-        if (render_mode == Mode8x) NCOLORS = 8, shift = 5;
-        if (render_mode == Mode24x) NCOLORS = 2, shift = 7;
-        GLubyte pix[256];
-        for (int i = 0; i < NCOLORS; ++i) {
-            GLubyte c;
-            if (render_mode == Mode24x) c = i ? 0 : 1;
-            else c = qRound(((::cosf(GLfloat(i)/GLfloat(NCOLORS-1)*2.0f*M_PI)+1.0f)/2.0f) * (NCOLORS-1));
-            pix[i] = (c&(NCOLORS-1)) << shift;
-        }
-        g->glBindTexture(GL_TEXTURE_1D, mgtexs[tex]);
-        g->glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, NCOLORS, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pix);
-        g->glBindTexture(GL_TEXTURE_1D, 0);
+    if (mgtex) g->glDeleteTextures(1, &mgtex), mgtex = 0;
+    g->glGenTextures(1, &mgtex);
+    const int NCOLORS = 256;
+    GLubyte pix[NCOLORS];
+    for (int i = 0; i < NCOLORS; ++i) {
+        pix[i] = qRound(((::cosf(GLfloat(i)/GLfloat(NCOLORS-1)*2.0f*M_PI)+1.0f)/2.0f) * 255);
     }
+    g->glBindTexture(GL_TEXTURE_1D, mgtex);
+    g->glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, NCOLORS, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pix);
+    g->glBindTexture(GL_TEXTURE_1D, 0);
 }
 
 void RenderWindow::togglePause() { paused = !paused; }
@@ -137,11 +135,13 @@ void RenderWindow::paintGL()
         g->glClearColor(0.f,0.f,0.f,1.f);
         g->glClear(GL_COLOR_BUFFER_BIT);
 
-        if (mode == MovingObjects) {
-            int nSubframes = (int)render_mode;
-            for (int k = 0; k < nSubframes; ++k) {
+        int nSubframes = (int)render_mode;
 
-                setColorMask(k);
+        for (int k = 0; k < nSubframes; ++k) {
+
+            setColorMask(k);
+
+            if (mode == MovingObjects) {
 
                 g->glEnableClientState(GL_VERTEX_ARRAY);
 
@@ -149,10 +149,8 @@ void RenderWindow::paintGL()
                     Square & s = squares[i];
                     g->glPushMatrix();
 
-                    GLubyte c[3];
-                    getColor(k,s.intensity, c);
-
-                    g->glColor3ub(c[0],c[1],c[2]);
+                    fragShader->setUniformValue("sampleTexture", false);
+                    fragShader->setUniformValue("color", QVector4D(s.intensity, s.intensity, s.intensity, 1.0));
                     g->glTranslatef(s.x,s.y,0.f);
                     g->glRotatef(s.angle, 0.f,0.f,1.f);
 
@@ -184,44 +182,49 @@ void RenderWindow::paintGL()
                     g->glPopMatrix();
                 }
                 g->glDisableClientState(GL_VERTEX_ARRAY);
-                unsetColorMask();
+
+            } else if (mode == MovingGrating) {
+
+                float dT = (1.f/60.f) * (time_scale/float(nSubframes));
+                phase += dT * temp_freq;
+                phase = fmod(phase, 1.0);
+
+                fragShader->setUniformValue("color", QVector4D(1.,1.,1., 1.0));
+                fragShader->setUniformValue("sampleTexture", true);
+
+                g->glPushMatrix();
+
+                g->glTranslatef( 0.5f, 0.5f, 0);
+                g->glRotatef( angle, 0.0, 0.0, 1.0 );
+
+
+                g->glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+                g->glEnable(GL_TEXTURE_1D);
+                g->glBindTexture(GL_TEXTURE_1D, mgtex);
+                g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+                g->glEnableClientState(GL_VERTEX_ARRAY);
+                g->glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+                GLfloat v[] = { -.5f,-.5f, .5f,-.5f, .5f,.5f, -.5f,.5f };
+                const float bw = (spatial_freq <= 0. ? 1.0 : 1.0/spatial_freq);
+                GLfloat t[] = { 0.f+phase, 1.f/bw+phase, 1.f/bw+phase, 0.f+phase };
+
+                g->glVertexPointer(2, GL_FLOAT, 0, v);
+                g->glTexCoordPointer(1, GL_FLOAT, 0, t);
+
+                g->glDrawArrays(GL_QUADS, 0, 4);
+
+                g->glDisableClientState(GL_VERTEX_ARRAY);
+                g->glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+                g->glDisable(GL_TEXTURE_1D);
+
+                g->glPopMatrix();
             }
-        } else if (mode == MovingGrating) {
-            float dT = 1.f/60.f * time_scale;
-            phase += dT * temp_freq;
-            phase = fmod(phase, 1.0);
-
-            g->glPushMatrix();
-
-            g->glTranslatef( 0.5f, 0.5f, 0);
-            g->glRotatef( angle, 0.0, 0.0, 1.0 );
-
-
-            g->glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-            g->glEnable(GL_TEXTURE_1D);
-            g->glBindTexture(GL_TEXTURE_1D, mgtexs[0]);
-            g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            g->glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-            g->glEnableClientState(GL_VERTEX_ARRAY);
-            g->glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-            GLfloat v[] = { -.5f,-.5f, .5f,-.5f, .5f,.5f, -.5f,.5f };
-            const float bw = (spatial_freq <= 0. ? 1.0 : 1.0/spatial_freq);
-            GLfloat t[] = { 0.f+phase, 1.f/bw+phase, 1.f/bw+phase, 0.f+phase };
-
-            g->glVertexPointer(2, GL_FLOAT, 0, v);
-            g->glTexCoordPointer(1, GL_FLOAT, 0, t);
-
-            g->glDrawArrays(GL_QUADS, 0, 4);
-
-            g->glDisableClientState(GL_VERTEX_ARRAY);
-            g->glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-            g->glDisable(GL_TEXTURE_1D);
-
-            g->glPopMatrix();
+            unsetColorMask();
         }
 
         if (!fbo->release())
@@ -261,8 +264,13 @@ void RenderWindow::setColorMask(int k)
 {
     if (render_mode != Normal && is_reverse)  k = (int(render_mode)-1)-k;
 
-    if (render_mode == Mode3x) g->glColorMask(k==0,k==1,k==2,GL_TRUE);
-    else {
+    if (!fragShader->bind()) qWarning("Error binding frag shader");
+    fragShader->setUniformValue("subFrame", k);
+    fragShader->setUniformValue("renderMode", int(render_mode));
+
+    if (render_mode == Mode3x) {
+        g->glColorMask(k==0,k==1,k==2,GL_TRUE);
+    } else if (render_mode != Normal) {
         g->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         g->glEnable(GL_COLOR_LOGIC_OP);
         g->glLogicOp(GL_OR);
@@ -271,44 +279,11 @@ void RenderWindow::setColorMask(int k)
 
 void RenderWindow::unsetColorMask()
 {
+    fragShader->release();
     g->glDisable(GL_COLOR_LOGIC_OP);
     g->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
 
-void RenderWindow::getColor(int k, GLfloat intensity, GLubyte c[3])
-{
-    if (intensity < 0.f) intensity = 0.f;
-    if (intensity > 1.f) intensity = 1.f;
-    if (render_mode != Normal && is_reverse)  k = (int(render_mode)-1)-k;
-
-    GLubyte tmp = 0, shift = 0;
-
-    switch(render_mode) {
-    case Mode3x:
-        c[0] = c[1] = c[2] = 0;
-        c[k] = intensity*255.f; // scale to 8-bit
-        break;
-    case Mode8x:
-        c[0] = c[1] = c[2] = 0;
-        tmp = intensity*8.f; // scale to 3-bit
-        tmp = tmp & 0x7; // make sure it's only bottom-three bits
-        shift = (7-k);
-        c[0] = (tmp>>2&0x1) << shift;
-        c[1] = (tmp>>1&0x1) << shift;
-        c[2] = (tmp>>0&0x1) << shift;
-        break;
-    case Mode24x:
-        c[0] = c[1] = c[2] = 0;
-        tmp = intensity > 1.f/255.f ? 0x1 : 0x0;
-        tmp = tmp&0x1; // ensure just bottom 1 bit is set
-        shift = (7-(k%8));
-        if (k < 8) c[0] = tmp<<shift;
-        else if (k < 16) c[1] = tmp<<shift;
-        else if (k < 24) c[2] = tmp<<shift;
-        break;
-    default: c[0] = c[1] = c[2] = intensity*255.f; break;
-    }
-}
 
 void RenderWindow::toggleFullScreen() {
     if (windowState() & Qt::WindowFullScreen)  showNormal();
@@ -329,4 +304,19 @@ bool RenderWindow::event(QEvent *e)
 {
     if (dynamic_cast<QCloseEvent *>(e)) { e->ignore(); return false; }
     return QOpenGLWindow::event(e);
+}
+
+void RenderWindow::initFragShader()
+{
+    bool wasOK =
+    fragShader->addShaderFromSourceFile(QOpenGLShader::Fragment,":/shaders/subframeshader.fsh");
+
+    if (!wasOK) {
+        qWarning("Error compiling shader: %s", fragShader->log().toUtf8().constData());
+        return;
+    }
+    if (!fragShader->link()) {
+        qWarning("Error linking shader: %s", fragShader->log().toUtf8().constData());
+        return;
+    }
 }
