@@ -36,7 +36,6 @@ RenderWindow::RenderWindow(QWindow *parent)
 
     setTitle("Test Ti 4500 DLP Render Window");
     setIcon(QIcon(":/icons/icon.png"));
-
 }
 
 RenderWindow::~RenderWindow()

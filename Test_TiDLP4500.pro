@@ -23,9 +23,6 @@ HEADERS  += dialog.h \
 
 FORMS    += dialog.ui
 
-DISTFILES += \
-    subframeshader.fsh
-
 RESOURCES += \
     shaders.qrc \
     misc.qrc
@@ -36,4 +33,9 @@ win32 {
     QMAKE_CXXFLAGS_RELEASE -= /O2 /O1 -O1 -O2
     QMAKE_CFLAGS_RELEASE += -Ox
     QMAKE_CXXFLAGS_RELEASE += -Ox
+}
+
+macx {
+    ICON = icon.icns
+    DISTFILES += icon.icns
 }

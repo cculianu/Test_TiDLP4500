@@ -2,11 +2,14 @@
 #include "ui_dialog.h"
 #include "RenderWindow.h"
 #include <QApplication>
+#include <QIcon>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     Dialog w;
+
+    w.setWindowIcon(QIcon(":/icons/icon.png"));
 
     RenderWindow r;
     r.setBaseSize(QSize(640,480));
