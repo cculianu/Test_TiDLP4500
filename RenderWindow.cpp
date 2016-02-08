@@ -57,13 +57,12 @@ typedef BOOL (APIENTRY *wglswapfn_t)(int);
 
 static void setVSyncMode(QOpenGLContext *c, bool vsync)
 {
-    c->makeCurrent();
     wglswapfn_t wglSwapIntervalEXT = (wglswapfn_t)c->getProcAddress( "wglSwapIntervalEXT" );
     if( wglSwapIntervalEXT ) {
         wglSwapIntervalEXT(vsync ? 1 : 0);
-        qDebug("VSync explicitly set to %s",vsync?"ON":"OFF");
+        //qDebug("VSync explicitly set to %s",vsync?"ON":"OFF");
     } else {
-        qDebug("VSync could not be altered because wglSwapIntervalEXT is missing.");
+        qWarning("VSync could not be altered because wglSwapIntervalEXT is missing.");
     }
 }
 #else
@@ -74,7 +73,16 @@ static void setVSyncMode(QOpenGLContext *c, bool vsync)
 }
 #endif
 
-void RenderWindow::setNoVSync(bool b) { setVSyncMode(context(), !b); }
+void RenderWindow::setNoVSync(bool b)
+{
+    QOpenGLContext *oldContext = QOpenGLContext::currentContext();
+    QSurface *oldSurface = oldContext ? oldContext->surface() : 0;
+
+    makeCurrent();
+    setVSyncMode(context(), !b);
+
+    if (oldContext) oldContext->makeCurrent(oldSurface);
+}
 
 void RenderWindow::initializeGL()
 {

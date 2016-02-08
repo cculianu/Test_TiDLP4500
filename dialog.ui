@@ -43,8 +43,8 @@
    <property name="geometry">
     <rect>
      <x>285</x>
-     <y>480</y>
-     <width>76</width>
+     <y>475</y>
+     <width>85</width>
      <height>32</height>
     </rect>
    </property>
@@ -584,7 +584,7 @@
  </resources>
  <connections/>
  <buttongroups>
-  <buttongroup name="pluginButs"/>
   <buttongroup name="radioButs"/>
+  <buttongroup name="pluginButs"/>
  </buttongroups>
 </ui>
