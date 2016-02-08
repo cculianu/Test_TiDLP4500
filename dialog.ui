@@ -210,7 +210,7 @@
     </rect>
    </property>
    <property name="focusPolicy">
-    <enum>Qt::TabFocus</enum>
+    <enum>Qt::StrongFocus</enum>
    </property>
    <property name="text">
     <string>Toggle Pause</string>

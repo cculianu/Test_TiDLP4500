@@ -67,13 +67,12 @@ void Dialog::broadcastFTCtlsUpdate() {
 void Dialog::keyPressEvent(QKeyEvent *e)
 {
     // this is so that when user hits enter inside the line edits, the default buttons on the dialog don't get activated!!
-//    qDebug("Dialog::keyPressEvent");
     QWidget *w = focusWidget();
     if ( (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
          && (w==ui->ftintLE || w==ui->ftposxLE || w==ui->ftposyLE || w==ui->ftsizeLE)) {
+        ui->pauseBut->setFocus();
         broadcastFTCtlsUpdate();
         e->ignore();
-//        qDebug("ignored");
     } else
         QDialog::keyPressEvent(e);
 }
