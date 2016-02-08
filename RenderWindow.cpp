@@ -180,7 +180,7 @@ void RenderWindow::paintGL()
                     if (mo_no_fragshader) {
                         GLubyte c[3];
                         getColor(k, s.intensity, c);
-                        glColor3ub(c[0],c[1],c[2]);
+                        g->glColor3ub(c[0],c[1],c[2]);
                     } else {
                         fragShader->setUniformValue("sampleTexture", false);
                         fragShader->setUniformValue("color", QVector4D(s.intensity, s.intensity, s.intensity, 1.0));
