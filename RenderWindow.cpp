@@ -20,6 +20,7 @@ RenderWindow::RenderWindow(QWindow *parent)
     render_mode = Normal;
     mode = MovingObjects;
     is_reverse = false;
+    mo_no_fragshader = mo_depth_test = false;
     time_scale = 1.0f;
     mgtex = 0;
     phase = 0.f; spatial_freq = 5.f; temp_freq = 1.f, angle = 0.f;
@@ -131,16 +132,25 @@ void RenderWindow::paintGL()
         if (!fbo->bind())
             qWarning("QOpenGLFrameBufferObject::bind() returned false!");
 
+        const bool enable_depth = mode == MovingObjects && mo_depth_test;
+
         g->glMatrixMode(GL_MODELVIEW);
         g->glLoadIdentity();
 
         g->glClearColor(0.f,0.f,0.f,1.f);
-        g->glClear(GL_COLOR_BUFFER_BIT);
+        g->glClear(GL_COLOR_BUFFER_BIT | (enable_depth ? GL_DEPTH_BUFFER_BIT : 0));
 
-        int nSubframes = (int)render_mode;
+        if (enable_depth)
+            g->glEnable(GL_DEPTH_TEST);
 
-        if (!fragShader->bind()) qWarning("Error binding frag shader");
-        fragShader->setUniformValue("renderMode", int(render_mode));
+        const int nSubframes = (int)render_mode;
+
+        if (mode != MovingObjects || !mo_no_fragshader) {
+            // movinggrating mode always uses frag shader
+            // movingobjects optionally does the color computation using getColor below..
+            if (!fragShader->bind()) qWarning("Error binding frag shader");
+            fragShader->setUniformValue("renderMode", int(render_mode));
+        }
 
         for (int k = 0; k < nSubframes; ++k) {
 
@@ -150,13 +160,32 @@ void RenderWindow::paintGL()
 
                 g->glEnableClientState(GL_VERTEX_ARRAY);
 
-                for (int i = 0; i < squares.size(); ++i) {
+                int i_init = 0,
+                    i_incr = 1;
+                float depth = 0.f, depth_incr = 0.f;
+                if (enable_depth) {
+                    i_init = squares.size()-1;
+                    i_incr = -1;
+                    depth = -0.95f;
+                    depth_incr = 1.9f/float(squares.size());
+                    g->glDepthRange(-1,1);
+                    g->glDepthFunc(GL_LEQUAL);
+                }
+
+                for (int i = i_init; i < squares.size() && i > -1; i += i_incr, depth += depth_incr)
+                {
                     Square & s = squares[i];
                     g->glPushMatrix();
 
-                    fragShader->setUniformValue("sampleTexture", false);
-                    fragShader->setUniformValue("color", QVector4D(s.intensity, s.intensity, s.intensity, 1.0));
-                    g->glTranslatef(s.x,s.y,0.f);
+                    if (mo_no_fragshader) {
+                        GLubyte c[3];
+                        getColor(k, s.intensity, c);
+                        glColor3ub(c[0],c[1],c[2]);
+                    } else {
+                        fragShader->setUniformValue("sampleTexture", false);
+                        fragShader->setUniformValue("color", QVector4D(s.intensity, s.intensity, s.intensity, 1.0));
+                    }
+                    g->glTranslatef(s.x,s.y,depth);
                     g->glRotatef(s.angle, 0.f,0.f,1.f);
 
                     GLfloat hw = s.w/2.f, hh = s.h/2.f;
@@ -236,6 +265,9 @@ void RenderWindow::paintGL()
 
         if (!fbo->release())
             qWarning("QOpenGLFramebufferObject::release() returned false!");
+
+        g->glDisable(GL_DEPTH_TEST);
+
     } // end if !paused
 
 
@@ -322,5 +354,41 @@ void RenderWindow::initFragShader()
     if (!fragShader->link()) {
         qWarning("Error linking shader: %s", fragShader->log().toUtf8().constData());
         return;
+    }
+}
+
+
+void RenderWindow::getColor(int k, GLfloat intensity, GLubyte c[3])
+{
+    if (intensity < 0.f) intensity = 0.f;
+    if (intensity > 1.f) intensity = 1.f;
+    if (render_mode != Normal && is_reverse)  k = (int(render_mode)-1)-k;
+
+    GLubyte tmp = 0, shift = 0;
+
+    switch(render_mode) {
+    case Mode3x:
+        c[0] = c[1] = c[2] = 0;
+        c[k] = intensity*255.f; // scale to 8-bit
+        break;
+    case Mode8x:
+        c[0] = c[1] = c[2] = 0;
+        tmp = intensity*8.f; // scale to 3-bit
+        tmp = tmp & 0x7; // make sure it's only bottom-three bits
+        shift = (7-k);
+        c[0] = (tmp>>2&0x1) << shift;
+        c[1] = (tmp>>1&0x1) << shift;
+        c[2] = (tmp>>0&0x1) << shift;
+        break;
+    case Mode24x:
+        c[0] = c[1] = c[2] = 0;
+        tmp = intensity >= 0.5f ? 0x1 : 0x0;
+        tmp = tmp&0x1; // ensure just bottom 1 bit is set
+        shift = (7-(k%8));
+        if (k < 8) c[0] = tmp<<shift;
+        else if (k < 16) c[1] = tmp<<shift;
+        else if (k < 24) c[2] = tmp<<shift;
+        break;
+    default: c[0] = c[1] = c[2] = intensity*255.f; break;
     }
 }

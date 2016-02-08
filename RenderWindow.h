@@ -45,6 +45,9 @@ public slots:
     void setMovingObjectsMode() { mode = MovingObjects; }
     void setMovingGratingMode() { mode = MovingGrating; }
 
+    void setMovingObjectsUsesDepthTest(bool b) { mo_depth_test = b; }
+    void setMovingObjectsNoFragShader(bool b) { mo_no_fragshader = b; }
+
 protected:
     void initializeGL();
     void paintGL();
@@ -74,7 +77,7 @@ private:
     bool paused;
     RenderModes render_mode;
     PluginModes mode;
-    bool is_reverse;
+    bool is_reverse, mo_no_fragshader, mo_depth_test;
     float time_scale;
     GLuint mgtex; // moving grating texture. 1d texture of 256 shades of gray
     // grating stuff
@@ -82,6 +85,7 @@ private:
 
     void setColorMask(int subframe_num);
     void unsetColorMask();
+    void getColor(int k, GLfloat intensity, GLubyte c[3]);
 };
 
 #endif // RENDERWINDOW_H

@@ -29,6 +29,12 @@ int main(int argc, char *argv[])
     QObject::connect(w.ui->timeSlider, SIGNAL(valueChanged(int)), &r, SLOT(setTimeScale(int)));
     QObject::connect(w.ui->movingObjectsRadio, SIGNAL(clicked()), &r, SLOT(setMovingObjectsMode()));
     QObject::connect(w.ui->movingGratingRadio, SIGNAL(clicked()), &r, SLOT(setMovingGratingMode()));
+    QObject::connect(w.ui->movingGratingRadio, SIGNAL(clicked(bool)), w.ui->mo_depth_test_chk, SLOT(setDisabled(bool)));
+    QObject::connect(w.ui->movingGratingRadio, SIGNAL(clicked(bool)), w.ui->mo_no_fragshader_chk, SLOT(setDisabled(bool)));
+    QObject::connect(w.ui->movingObjectsRadio, SIGNAL(clicked(bool)), w.ui->mo_depth_test_chk, SLOT(setEnabled(bool)));
+    QObject::connect(w.ui->movingObjectsRadio, SIGNAL(clicked(bool)), w.ui->mo_no_fragshader_chk, SLOT(setEnabled(bool)));
+    QObject::connect(w.ui->mo_depth_test_chk, SIGNAL(clicked(bool)), &r, SLOT(setMovingObjectsUsesDepthTest(bool)));
+    QObject::connect(w.ui->mo_no_fragshader_chk, SIGNAL(clicked(bool)), &r, SLOT(setMovingObjectsNoFragShader(bool)));
 
     r.show();
     w.show();

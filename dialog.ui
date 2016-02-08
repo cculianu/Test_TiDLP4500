@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>389</width>
-    <height>313</height>
+    <height>354</height>
    </rect>
   </property>
   <property name="focusPolicy">
@@ -24,7 +24,7 @@
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>190</y>
+     <y>240</y>
      <width>161</width>
      <height>32</height>
     </rect>
@@ -43,7 +43,7 @@
    <property name="geometry">
     <rect>
      <x>290</x>
-     <y>270</y>
+     <y>320</y>
      <width>81</width>
      <height>32</height>
     </rect>
@@ -56,7 +56,7 @@
    <property name="geometry">
     <rect>
      <x>180</x>
-     <y>280</y>
+     <y>330</y>
      <width>31</width>
      <height>16</height>
     </rect>
@@ -69,7 +69,7 @@
    <property name="geometry">
     <rect>
      <x>220</x>
-     <y>280</y>
+     <y>330</y>
      <width>61</width>
      <height>16</height>
     </rect>
@@ -82,20 +82,20 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>280</y>
+     <y>330</y>
      <width>101</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Frame time (ms):</string>
+    <string>Frame cost (ms):</string>
    </property>
   </widget>
   <widget class="QLabel" name="renderTimeLbl">
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>280</y>
+     <y>330</y>
      <width>41</width>
      <height>16</height>
     </rect>
@@ -204,7 +204,7 @@
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>220</y>
+     <y>270</y>
      <width>161</width>
      <height>32</height>
     </rect>
@@ -228,7 +228,7 @@
      <x>10</x>
      <y>130</y>
      <width>361</width>
-     <height>51</height>
+     <height>101</height>
     </rect>
    </property>
    <property name="title">
@@ -238,7 +238,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>20</y>
+      <y>30</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -257,7 +257,7 @@
     <property name="geometry">
      <rect>
       <x>180</x>
-      <y>20</y>
+      <y>30</y>
       <width>151</width>
       <height>20</height>
      </rect>
@@ -269,12 +269,38 @@
      <string notr="true">pluginButs</string>
     </attribute>
    </widget>
+   <widget class="QCheckBox" name="mo_no_fragshader_chk">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>50</y>
+      <width>201</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Don't use fragment shader</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="mo_depth_test_chk">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>70</y>
+      <width>201</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Use depth testing</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QSlider" name="timeSlider">
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>230</y>
+     <y>280</y>
      <width>171</width>
      <height>22</height>
     </rect>
@@ -299,7 +325,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>210</y>
+     <y>260</y>
      <width>81</width>
      <height>16</height>
     </rect>
@@ -312,7 +338,7 @@
    <property name="geometry">
     <rect>
      <x>100</x>
-     <y>210</y>
+     <y>260</y>
      <width>71</width>
      <height>16</height>
     </rect>
@@ -328,7 +354,7 @@
  </resources>
  <connections/>
  <buttongroups>
-  <buttongroup name="pluginButs"/>
   <buttongroup name="radioButs"/>
+  <buttongroup name="pluginButs"/>
  </buttongroups>
 </ui>
