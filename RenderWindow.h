@@ -51,6 +51,8 @@ public slots:
     void setFrameTrackBoxEnabled(bool en) { ftrack = en; }
     void setFrameTrackParams(int posx, int posy, int size, float intensity);
 
+    void setNoFBO(bool b) { no_fbo = b; }
+
 protected:
     void initializeGL();
     void paintGL();
@@ -80,7 +82,7 @@ private:
     bool paused;
     RenderModes render_mode;
     PluginModes mode;
-    bool is_reverse, mo_no_fragshader, mo_depth_test;
+    bool is_reverse, mo_no_fragshader, mo_depth_test, no_fbo;
     float time_scale;
     GLuint mgtex; // moving grating texture. 1d texture of 256 shades of gray
     // grating stuff

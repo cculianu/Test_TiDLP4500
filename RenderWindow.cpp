@@ -20,7 +20,7 @@ RenderWindow::RenderWindow(QWindow *parent)
     render_mode = Normal;
     mode = MovingObjects;
     is_reverse = false;
-    mo_no_fragshader = mo_depth_test = false;
+    mo_no_fragshader = mo_depth_test = no_fbo = false;
     time_scale = 1.0f;
     mgtex = 0;
     phase = 0.f; spatial_freq = 5.f; temp_freq = 1.f, angle = 0.f;
@@ -133,7 +133,7 @@ void RenderWindow::paintGL()
 
     if (!paused) {
 
-        if (!fbo->bind())
+        if (!no_fbo && !fbo->bind())
             qWarning("QOpenGLFrameBufferObject::bind() returned false!");
 
         const bool enable_depth = mode == MovingObjects && mo_depth_test;
@@ -267,7 +267,7 @@ void RenderWindow::paintGL()
 
         fragShader->release();
 
-        if (!fbo->release())
+        if (!no_fbo && !fbo->release())
             qWarning("QOpenGLFramebufferObject::release() returned false!");
 
         g->glDisable(GL_DEPTH_TEST);
@@ -275,28 +275,30 @@ void RenderWindow::paintGL()
     } // end if !paused
 
 
-    g->glEnable(GL_TEXTURE_2D);
-    g->glEnableClientState(GL_VERTEX_ARRAY);
-    g->glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    if (!no_fbo) {
+        g->glEnable(GL_TEXTURE_2D);
+        g->glEnableClientState(GL_VERTEX_ARRAY);
+        g->glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-    g->glColor4f(1.f,1.f,1.f,1.f);
-    g->glBindTexture(GL_TEXTURE_2D,fbo->texture());
-    g->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    g->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    g->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    g->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        g->glColor4f(1.f,1.f,1.f,1.f);
+        g->glBindTexture(GL_TEXTURE_2D,fbo->texture());
+        g->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        g->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        g->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        g->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 
-    GLfloat v[] = { 0,0, 1,0, 1,1, 0,1 };
-    GLfloat t[] = { 0,0, 1,0, 1,1, 0,1 };
+        GLfloat v[] = { 0,0, 1,0, 1,1, 0,1 };
+        GLfloat t[] = { 0,0, 1,0, 1,1, 0,1 };
 
-    g->glVertexPointer(2, GL_FLOAT, 0, v);
-    g->glTexCoordPointer(2, GL_FLOAT, 0, t);
-    g->glDrawArrays(GL_QUADS, 0, 4);
+        g->glVertexPointer(2, GL_FLOAT, 0, v);
+        g->glTexCoordPointer(2, GL_FLOAT, 0, t);
+        g->glDrawArrays(GL_QUADS, 0, 4);
 
-    g->glDisable(GL_TEXTURE_2D);
-
-    g->glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        g->glDisable(GL_TEXTURE_2D);
+        g->glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        g->glDisableClientState(GL_VERTEX_ARRAY);
+    }
 
     if (ftrack) {
         float w = width(), h = height();
@@ -309,13 +311,14 @@ void RenderWindow::paintGL()
 
         GLfloat v[] = { x-sx,y-sy,  x+sx,y-sy, x+sx,y+sy, x-sx,y+sy };
 
+        g->glEnableClientState(GL_VERTEX_ARRAY);
+
         g->glVertexPointer(2, GL_FLOAT, 0, v);
         g->glDrawArrays(GL_QUADS, 0, 4);
 
         g->glColor4f(1.f,1.f,1.f,1.f);
+        g->glDisableClientState(GL_VERTEX_ARRAY);
     }
-
-    g->glDisableClientState(GL_VERTEX_ARRAY);
 
     renderTimeAccum += getTime()-now;
 
