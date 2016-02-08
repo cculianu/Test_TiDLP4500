@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
     QObject::connect(w.ui->ftrackGB, SIGNAL(clicked(bool)), &r, SLOT(setFrameTrackBoxEnabled(bool)));
     QObject::connect(&w, SIGNAL(ftrackParamsChanged(int,int,int,float)), &r, SLOT(setFrameTrackParams(int,int,int,float)));
     QObject::connect(w.ui->nofboChk, SIGNAL(clicked(bool)), &r, SLOT(setNoFBO(bool)));
+    QObject::connect(w.ui->disableVSyncChk, SIGNAL(clicked(bool)), &r, SLOT(setNoVSync(bool)));
 
     r.show();
     w.show();

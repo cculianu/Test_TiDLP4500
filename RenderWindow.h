@@ -54,6 +54,8 @@ public slots:
 
     void setNoFBO(bool b) { no_fbo = b; }
 
+    void setNoVSync(bool b);
+
 protected:
     void initializeGL();
     void paintGL();

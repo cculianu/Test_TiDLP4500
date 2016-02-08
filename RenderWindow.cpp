@@ -57,6 +57,7 @@ typedef BOOL (APIENTRY *wglswapfn_t)(int);
 
 static void setVSyncMode(QOpenGLContext *c, bool vsync)
 {
+    c->makeCurrent();
     wglswapfn_t wglSwapIntervalEXT = (wglswapfn_t)c->getProcAddress( "wglSwapIntervalEXT" );
     if( wglSwapIntervalEXT ) {
         wglSwapIntervalEXT(vsync ? 1 : 0);
@@ -68,15 +69,18 @@ static void setVSyncMode(QOpenGLContext *c, bool vsync)
 #else
 static void setVSyncMode(QOpenGLContext *c, bool vsync)
 {
+    (void)c; (void)vsync;
     qDebug("Cannot set VSync.  This only works on Windows for now.");
 }
 #endif
+
+void RenderWindow::setNoVSync(bool b) { setVSyncMode(context(), !b); }
 
 void RenderWindow::initializeGL()
 {
     qDebug("OpenGL: %d.%d", context()->format().majorVersion(), context()->format().minorVersion());
 
-    setVSyncMode(context(), true);
+    setNoVSync(false);
 
     if (!g) {
         g = new QOpenGLFunctions_1_5;
