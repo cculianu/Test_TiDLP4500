@@ -12,8 +12,8 @@ int main(int argc, char *argv[])
     w.setWindowIcon(QIcon(":/icons/icon.png"));
 
     RenderWindow r;
-    r.setBaseSize(QSize(640,480));
-    r.resize(640,480);
+    r.setBaseSize(QSize(800,600));
+    r.resize(800,600);
 
     QObject::connect(w.ui->fullScreenBut, SIGNAL(clicked()), &r, SLOT(toggleFullScreen()));
     QObject::connect(w.ui->quitBut, SIGNAL(clicked()), &a, SLOT(quit()));
@@ -35,6 +35,8 @@ int main(int argc, char *argv[])
     QObject::connect(w.ui->movingObjectsRadio, SIGNAL(clicked(bool)), w.ui->mo_no_fragshader_chk, SLOT(setEnabled(bool)));
     QObject::connect(w.ui->mo_depth_test_chk, SIGNAL(clicked(bool)), &r, SLOT(setMovingObjectsUsesDepthTest(bool)));
     QObject::connect(w.ui->mo_no_fragshader_chk, SIGNAL(clicked(bool)), &r, SLOT(setMovingObjectsNoFragShader(bool)));
+    QObject::connect(w.ui->ftrackGB, SIGNAL(clicked(bool)), &r, SLOT(setFrameTrackBoxEnabled(bool)));
+    QObject::connect(&w, SIGNAL(ftrackParamsChanged(int,int,int,float)), &r, SLOT(setFrameTrackParams(int,int,int,float)));
 
     r.show();
     w.show();

@@ -2,6 +2,7 @@
 #include "ui_dialog.h"
 #include <QCloseEvent>
 #include <QHideEvent>
+#include <QKeyEvent>
 
 Dialog::Dialog(QWidget *parent) :
     QDialog(parent),
@@ -12,6 +13,10 @@ Dialog::Dialog(QWidget *parent) :
     connect(ui->tripleRadio, SIGNAL(clicked(bool)), ui->reverseChk, SLOT(setEnabled(bool)));
     connect(ui->octupleRadio, SIGNAL(clicked(bool)), ui->reverseChk, SLOT(setEnabled(bool)));
     connect(ui->dodekaQuadrupleRadio, SIGNAL(clicked(bool)), ui->reverseChk, SLOT(setEnabled(bool)));
+    connect(ui->ftposxLE, SIGNAL(textChanged(QString)), this, SLOT(broadcastFTCtlsUpdate()));
+    connect(ui->ftposyLE, SIGNAL(textChanged(QString)), this, SLOT(broadcastFTCtlsUpdate()));
+    connect(ui->ftsizeLE, SIGNAL(textChanged(QString)), this, SLOT(broadcastFTCtlsUpdate()));
+    connect(ui->ftintLE, SIGNAL(textChanged(QString)), this, SLOT(broadcastFTCtlsUpdate()));
 }
 
 Dialog::~Dialog()
@@ -44,4 +49,31 @@ void Dialog::updateRenderTimeLabel(int time_us)
 void Dialog::on_timeSlider_valueChanged(int value)
 {
     ui->timeScaleLbl->setText(QString::number(value));
+}
+
+void Dialog::broadcastFTCtlsUpdate() {
+    int x,y,size;
+    float intensity;
+    bool ok = false;
+
+    x = ui->ftposxLE->text().toInt(&ok); if (!ok) return;
+    y = ui->ftposyLE->text().toInt(&ok); if (!ok) return;
+    size = ui->ftsizeLE->text().toInt(&ok); if (!ok) return;
+    intensity = ui->ftintLE->text().toFloat(&ok); if (!ok) return;
+
+    emit ftrackParamsChanged(x,y,size,intensity);
+}
+
+void Dialog::keyPressEvent(QKeyEvent *e)
+{
+    // this is so that when user hits enter inside the line edits, the default buttons on the dialog don't get activated!!
+//    qDebug("Dialog::keyPressEvent");
+    QWidget *w = focusWidget();
+    if ( (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
+         && (w==ui->ftintLE || w==ui->ftposxLE || w==ui->ftposyLE || w==ui->ftsizeLE)) {
+        broadcastFTCtlsUpdate();
+        e->ignore();
+//        qDebug("ignored");
+    } else
+        QDialog::keyPressEvent(e);
 }

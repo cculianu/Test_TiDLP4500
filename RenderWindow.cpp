@@ -25,6 +25,10 @@ RenderWindow::RenderWindow(QWindow *parent)
     mgtex = 0;
     phase = 0.f; spatial_freq = 5.f; temp_freq = 1.f, angle = 0.f;
 
+    ftrack = false;
+    ftrack_x = 776; ftrack_y = 4; ftrack_len = 20; ftrack_int = 1.0f;
+
+
     setSurfaceType(OpenGLSurface);
     QSurfaceFormat  format;
     format.setProfile(QSurfaceFormat::CompatibilityProfile);
@@ -288,11 +292,30 @@ void RenderWindow::paintGL()
 
     g->glVertexPointer(2, GL_FLOAT, 0, v);
     g->glTexCoordPointer(2, GL_FLOAT, 0, t);
-    g->glDrawArrays(GL_QUADS, 0, 4);;
+    g->glDrawArrays(GL_QUADS, 0, 4);
 
     g->glDisable(GL_TEXTURE_2D);
-    g->glDisableClientState(GL_VERTEX_ARRAY);
+
     g->glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+
+    if (ftrack) {
+        float w = width(), h = height();
+        float x = ftrack_x/w, y = ftrack_y/h, sx = (ftrack_len/w)*.5f, sy = (ftrack_len/h)*.5f;
+
+        if (frameCount % 2)
+            g->glColor4f(ftrack_int, ftrack_int, ftrack_int, 1.f);
+        else
+            g->glColor4f(0.f,0.f,0.f, 1.f);
+
+        GLfloat v[] = { x-sx,y-sy,  x+sx,y-sy, x+sx,y+sy, x-sx,y+sy };
+
+        g->glVertexPointer(2, GL_FLOAT, 0, v);
+        g->glDrawArrays(GL_QUADS, 0, 4);
+
+        g->glColor4f(1.f,1.f,1.f,1.f);
+    }
+
+    g->glDisableClientState(GL_VERTEX_ARRAY);
 
     renderTimeAccum += getTime()-now;
 
@@ -392,3 +415,10 @@ void RenderWindow::getColor(int k, GLfloat intensity, GLubyte c[3])
     default: c[0] = c[1] = c[2] = intensity*255.f; break;
     }
 }
+
+void RenderWindow::setFrameTrackParams(int posx, int posy, int size, float intensity)
+{
+    if (size <= 0 || intensity < 0.f || intensity > 1.f) return;
+    ftrack_x = posx; ftrack_y = posy; ftrack_len = size; ftrack_int = intensity;
+}
+

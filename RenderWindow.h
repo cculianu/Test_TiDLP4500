@@ -48,6 +48,9 @@ public slots:
     void setMovingObjectsUsesDepthTest(bool b) { mo_depth_test = b; }
     void setMovingObjectsNoFragShader(bool b) { mo_no_fragshader = b; }
 
+    void setFrameTrackBoxEnabled(bool en) { ftrack = en; }
+    void setFrameTrackParams(int posx, int posy, int size, float intensity);
+
 protected:
     void initializeGL();
     void paintGL();
@@ -82,6 +85,11 @@ private:
     GLuint mgtex; // moving grating texture. 1d texture of 256 shades of gray
     // grating stuff
     float phase, spatial_freq, temp_freq, angle;
+
+    // frametrack box
+    bool ftrack;
+    int ftrack_x, ftrack_y, ftrack_len;
+    float ftrack_int;
 
     void setColorMask(int subframe_num);
     void unsetColorMask();

@@ -18,6 +18,9 @@ public:
 
     Ui::Dialog *ui;
 
+signals:
+    void ftrackParamsChanged(int posx, int posy, int size, float intensity);
+
 public slots:
     void updateFPSLabel(int fps);
     void updateRenderTimeLabel(int time_us);
@@ -25,8 +28,12 @@ public slots:
 protected:
     void closeEvent(QCloseEvent *);
     void hideEvent(QHideEvent *);
+    void keyPressEvent(QKeyEvent *);
+
 private slots:
     void on_timeSlider_valueChanged(int value);
+
+    void broadcastFTCtlsUpdate();
 };
 
 #endif // DIALOG_H
