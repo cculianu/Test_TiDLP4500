@@ -41,6 +41,11 @@ void Dialog::updateFPSLabel(int fps)
     ui->fpsLbl->setText(QString::number(fps));
 }
 
+void Dialog::updateVFPSLabel(int fps)
+{
+    ui->vfpsLbl->setText(QString::number(fps));
+}
+
 void Dialog::updateRenderTimeLabel(int time_us)
 {
     ui->renderTimeLbl->setText(QString::number(double(time_us/1000.0)));

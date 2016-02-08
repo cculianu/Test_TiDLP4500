@@ -28,6 +28,7 @@ public:
 
 signals:
     void computedFPS(int fps);
+    void computedVFPS(int vfps);
     void computedRenderTime(int time_us);
 
 public slots:

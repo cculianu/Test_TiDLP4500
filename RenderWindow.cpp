@@ -52,9 +52,31 @@ RenderWindow::~RenderWindow()
     if (g) delete g, g = 0;
 }
 
+#if defined(Q_OS_WIN) /* Windows */
+typedef BOOL (APIENTRY *wglswapfn_t)(int);
+
+static void setVSyncMode(QOpenGLContext *c, bool vsync)
+{
+    wglswapfn_t wglSwapIntervalEXT = (wglswapfn_t)c->getProcAddress( "wglSwapIntervalEXT" );
+    if( wglSwapIntervalEXT ) {
+        wglSwapIntervalEXT(vsync ? 1 : 0);
+        qDebug("VSync explicitly set to %s",vsync?"ON":"OFF");
+    } else {
+        qDebug("VSync could not be altered because wglSwapIntervalEXT is missing.");
+    }
+}
+#else
+static void setVSyncMode(QOpenGLContext *c, bool vsync)
+{
+    qDebug("Cannot set VSync.  This only works on Windows for now.");
+}
+#endif
+
 void RenderWindow::initializeGL()
 {
     qDebug("OpenGL: %d.%d", context()->format().majorVersion(), context()->format().minorVersion());
+
+    setVSyncMode(context(), true);
 
     if (!g) {
         g = new QOpenGLFunctions_1_5;
@@ -125,6 +147,7 @@ void RenderWindow::paintGL()
         int nframes = frameCount-lastFPSFC;
         int fps = qRound(nframes/(now-tLastFPS));
         emit computedFPS(fps);
+        emit computedVFPS(fps*int(render_mode));
         emit computedRenderTime(qRound((renderTimeAccum/nframes)*1e6));
         lastFPSFC = frameCount;
         tLastFPS = now;

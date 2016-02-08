@@ -23,6 +23,7 @@ signals:
 
 public slots:
     void updateFPSLabel(int fps);
+    void updateVFPSLabel(int vfps);
     void updateRenderTimeLabel(int time_us);
 
 protected:
